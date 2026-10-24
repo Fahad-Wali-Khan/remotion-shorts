@@ -28,9 +28,18 @@ asks for changes, and finally asks you to render.
    `npm run video:sync`, and tell the user to open the `<slug>` entry in the left sidebar.
 5. **Iterate on request:** edit only the visuals in `videos/<slug>.json` (headline, sub, bigText, `media`,
    `seconds`, colors in `src/theme.ts`). Never make a scene shorter than its audio (voice warns about it).
+   Every video also needs a **thumbnail** block at the top of the script (`"thumbnail": { "tag", "emoji", "highlight", "title" }`):
+   `highlight` = 1 to 3 huge gold words (the number or hook, e.g. "₹1.48 LAKH"), `title` = a curiosity line of max 6 words,
+   `tag` = red sticker ("BREAKING", "EMI ALERT"), `emoji` = one emoji (avoid 🪙, it renders wrongly; avoid $ symbols, use ₹).
+   Preview it in Studio as `<slug>-thumb`. Optional `image` = a photo from `public/media/` behind the text.
+   Also add a **`youtube`** block (feeds `out/<slug>-upload.txt` with everything for the YouTube upload form):
+   `title` (max 70 chars, main keyword first, curiosity second, e.g. "Gold ₹1.48 Lakh Cross! Ab Gold Kharidna Chahiye?"),
+   `description` (first 1 to 2 sentences carry the search keywords), `bullets` (3 to 4 facts), `hashtags` (exactly 3, last one `#Shorts`),
+   `tags` (12 to 15 search phrases incl. the channel name, under 500 chars), `pinnedComment` (an engagement question), `category`.
+   The generator adds the follow CTA and a financial-advice disclaimer itself. Use only facts from the user's script.
    Images/videos the user provides go in `public/media/` and are referenced as `media/<file>`
    (`media: { type: "image"|"video", src, mode: "background"|"card" }`).
-6. **Render only when the user says to:** `npm run render:video -- <slug>` -> `out/<slug>.mp4`.
+6. **Render only when the user says to:** `npm run render:video -- <slug>` -> `out/<slug>.mp4` `out/<slug>-thumbnail.png` (1080x1920) and `out/<slug>-upload.txt`.
 7. **Cleanup only when the user says to:** `npm run reset` (wipes `videos/`, `public/media/`, `out/`).
 
 ## Rules

@@ -1,4 +1,5 @@
-import { Composition } from "remotion";
+import { Composition, Still } from "remotion";
+import { Thumbnail } from "./Thumbnail";
 import { Short } from "./Short";
 import { script } from "./script";
 import { videos as generated } from "./videos.generated";
@@ -30,6 +31,21 @@ export const RemotionRoot: React.FC = () => {
           })}
         />
       ))}
+      {/* One thumbnail still per video that has a `thumbnail` block: id "<slug>-thumb" */}
+      {videos.flatMap((v) =>
+        v.script.thumbnail
+          ? [
+              <Still
+                key={`${v.id}-thumb`}
+                id={`${v.id}-thumb`}
+                component={Thumbnail}
+                width={1080}
+                height={1920}
+                defaultProps={{ thumbnail: v.script.thumbnail }}
+              />,
+            ]
+          : [],
+      )}
     </>
   );
 };

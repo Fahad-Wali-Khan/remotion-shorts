@@ -3,8 +3,8 @@
 
 export const theme = {
   brand: {
-    name: "Your Channel",
-    handle: "@yourchannel", // watermark shown bottom-left; set "" to hide
+    name: "Herapheri Finance",
+    handle: "@herapherifinance", // watermark shown bottom-left; set "" to hide
     // Put your logo in public/brand/ and set e.g. "brand/logo.png". "" = no logo.
     logo: "",
   },

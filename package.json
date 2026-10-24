@@ -35,7 +35,8 @@
     "check:voice": "node scripts/check-voice.mjs",
     "voice": "node scripts/voice.mjs",
     "render:video": "node scripts/render.mjs",
-    "reset": "node scripts/reset.mjs"
+    "reset": "node scripts/reset.mjs",
+    "upload-info": "node scripts/upload-info.mjs"
   },
   "allowScripts": {
     "esbuild": false

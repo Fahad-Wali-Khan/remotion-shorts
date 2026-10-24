@@ -4,12 +4,14 @@ import {
   Audio,
   Img,
   OffthreadVideo,
+  Sequence,
   interpolate,
   spring,
   staticFile,
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
+import { sfx, sfxMaxSeconds, type SfxName } from "../sfx";
 import { theme } from "../theme";
 import type { Media, SceneConfig } from "../types";
 
@@ -60,6 +62,22 @@ export const Scene: React.FC<{ scene: SceneConfig }> = ({ scene }) => {
   return (
     <AbsoluteFill style={{ opacity: fadeOut }}>
       {scene.audio ? <Audio src={staticFile(scene.audio)} /> : null}
+      {(scene.sfx ?? []).map((fx, i) => {
+        if (!(fx.name in sfx)) {
+          throw new Error(`Unknown sound effect "${fx.name}". See src/sfx.ts for available names.`);
+        }
+        const name = fx.name as SfxName;
+        const max = sfxMaxSeconds[name];
+        return (
+          <Sequence key={i} from={Math.round((fx.at ?? 0) * fps)} layout="none">
+            <Audio
+              src={staticFile(sfx[name])}
+              volume={fx.volume ?? 0.4}
+              trimAfter={max ? Math.round(max * fps) : undefined}
+            />
+          </Sequence>
+        );
+      })}
       {media && isBackground ? (
         <>
           <AbsoluteFill>

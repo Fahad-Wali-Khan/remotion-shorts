@@ -1,8 +1,9 @@
 // Usage: npm run render:video -- <slug>     (slug = file name in videos/ without .json)
-// Renders out/<slug>.mp4. Refuses to render if a scene has narration text but no audio yet.
+// Renders out/<slug>.mp4 and, if the script has a `thumbnail` block, out/<slug>-thumbnail.png. Refuses to render if a scene has narration text but no audio yet.
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { buildUploadInfo } from "./upload-info.mjs";
 
 const slug = process.argv[2]?.replace(/\.json$/, "").replace(/^videos[\\/]/, "");
 const available = existsSync("videos") ? readdirSync("videos").filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, "")) : [];
@@ -24,4 +25,18 @@ execFileSync("npx", ["remotion", "render", slug.replace(/[^a-zA-Z0-9-]/g, "-"), 
   stdio: "inherit",
   shell: true,
 });
-console.log(`\nDone: out/${slug}.mp4`);
+const id = slug.replace(/[^a-zA-Z0-9-]/g, "-");
+if (script.thumbnail) {
+  execFileSync("npx", ["remotion", "still", `${id}-thumb`, `out/${slug}-thumbnail.png`, `--port=${port + 1}`], {
+    stdio: "inherit",
+    shell: true,
+  });
+}
+const info = buildUploadInfo(slug, script);
+if (info) {
+  writeFileSync(`out/${slug}-upload.txt`, "﻿" + info.text.replace(/\n/g, "\r\n"), "utf8");
+  info.warnings.forEach((w) => console.warn("WARNING: " + w));
+} else {
+  console.warn('No "youtube" block in the script, so no upload text file was written.');
+}
+console.log(`\nDone: out/${slug}.mp4${script.thumbnail ? ` and out/${slug}-thumbnail.png` : ""}${info ? ` and out/${slug}-upload.txt` : ""}`);
