@@ -27,7 +27,14 @@
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc",
-    "render": "remotion render Short out/short.mp4",
+    "postinstall": "node scripts/sync-videos.mjs",
+    "predev": "node scripts/sync-videos.mjs",
+    "prebuild": "node scripts/sync-videos.mjs",
+    "prelint": "node scripts/sync-videos.mjs",
+    "video:sync": "node scripts/sync-videos.mjs",
+    "check:voice": "node scripts/check-voice.mjs",
+    "voice": "node scripts/voice.mjs",
+    "render:video": "node scripts/render.mjs",
     "reset": "node scripts/reset.mjs"
   },
   "allowScripts": {

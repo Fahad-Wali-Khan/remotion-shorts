@@ -1,11 +1,18 @@
 node_modules
 dist
 .DS_Store
+
+# Secrets (Sarvam API key)
 .env
 
 # Rendered videos
 out
 
-# Per-video media: folder is kept, contents are not committed
+# Per-video work: scripts, media and narration audio are never committed
+videos/*
+!videos/.gitkeep
 public/media/*
 !public/media/.gitkeep
+
+# Generated list of videos for Studio
+src/videos.generated.ts

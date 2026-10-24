@@ -23,6 +23,12 @@ export type SceneConfig = {
   /** Large highlighted text/number in the middle (e.g. "₹1.7 Cr"). */
   bigText?: string;
   media?: Media;
+  /** Narration text for this scene (use Devanagari for Hindi). `npm run voice` turns it into audio and sets `seconds`. */
+  voice?: string;
+  /** Narration clip in /public — filled in by `npm run voice`. */
+  audio?: string;
+  /** Fingerprint of the narration that produced `audio` (voice text + speaker + pace). Lets `npm run voice` skip unchanged scenes. */
+  voiceKey?: string;
 };
 
 export type ShortScript = {

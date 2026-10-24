@@ -1,6 +1,7 @@
 import React from "react";
 import {
   AbsoluteFill,
+  Audio,
   Img,
   OffthreadVideo,
   interpolate,
@@ -58,6 +59,7 @@ export const Scene: React.FC<{ scene: SceneConfig }> = ({ scene }) => {
 
   return (
     <AbsoluteFill style={{ opacity: fadeOut }}>
+      {scene.audio ? <Audio src={staticFile(scene.audio)} /> : null}
       {media && isBackground ? (
         <>
           <AbsoluteFill>
