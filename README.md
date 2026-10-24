@@ -1,54 +1,27 @@
-# Remotion video
+# Shorts template (Remotion)
 
-<p align="center">
-  <a href="https://github.com/remotion-dev/logo">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://github.com/remotion-dev/logo/raw/main/animated-logo-banner-dark.apng">
-      <img alt="Animated Remotion Logo" src="https://github.com/remotion-dev/logo/raw/main/animated-logo-banner-light.gif">
-    </picture>
-  </a>
-</p>
+Vertical 1080x1920 video template. Theme is permanent; script and media are per video.
 
-Welcome to your Remotion project!
+| What | Where | Committed? |
+|---|---|---|
+| Look & feel (colors, fonts, sizes, watermark, safe area) | `src/theme.ts` | yes |
+| Logo / permanent brand assets | `public/brand/` | yes |
+| Scene layout code | `src/components/Scene.tsx`, `src/Short.tsx` | yes |
+| **This video's script** | `src/script.ts` | reset after render |
+| **This video's images/videos/audio** | `public/media/` | never (git-ignored) |
+| Rendered videos | `out/` | never (git-ignored) |
 
-## Commands
+## Daily workflow
+1. Drop images/videos/audio into `public/media/`.
+2. Edit `src/script.ts` (scenes, text, `media: { type, src: "media/file.png", mode }`).
+3. Preview: `npm run dev` -> pick **Short**.
+4. Render: `npm run render` (writes `out/short.mp4`).
+5. Clean up: `npm run reset` (restores `src/script.ts` from `scripts/script.blank.txt`, empties `public/media/` and `out/`).
 
-**Install Dependencies**
+Length is automatic: the sum of every scene's `seconds`.
 
-```console
-npm i --loglevel=error
-```
+## Scene options (`src/types.ts`)
+`headline`, `sub`, `bigText`, and `media` (image or video; `mode: "background"` fills the screen, `"card"` shows a rounded picture in the middle). Top-level `voiceover`, `music`, `musicVolume` are optional.
 
-**Start Preview**
-
-```console
-npm run dev
-```
-
-**Render video**
-
-```console
-npx remotion render
-```
-
-**Upgrade Remotion**
-
-```console
-npx remotion upgrade
-```
-
-## Docs
-
-Get started with Remotion by reading the [fundamentals page](https://www.remotion.dev/docs/the-fundamentals).
-
-## Help
-
-We provide help on our [Discord server](https://discord.gg/6VzzNDwUwV).
-
-## Issues
-
-Found an issue with Remotion? [File an issue here](https://github.com/remotion-dev/remotion/issues/new).
-
-## License
-
-Note that for some entities a company license is needed. [Read the terms here](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md).
+## Changing the theme
+Edit `src/theme.ts` and commit it. Put your logo in `public/brand/` and set `brand.logo`.
