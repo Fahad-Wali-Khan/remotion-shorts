@@ -22,6 +22,12 @@ These come from the `thumbnail` and `youtube` blocks in `videos/<slug>.json`. Cl
 Keywords follow common YouTube SEO advice (keyword-first title, 2 to 3 hashtags, engagement question), they are **not** verified against live trends: check them in YouTube search suggestions or vidIQ before posting.
 Facts in descriptions come only from your script, so verify numbers before publishing.
 
+## Captions, music, fonts, animated emoji
+- **Captions:** each scene's `caption` (Roman Hinglish) is shown 3 words at a time, the spoken word highlighted. Word timings come free from the narration audio (pauses detected with ffmpeg, no transcription service). `npm run captions -- videos/x.json` refreshes them; `voice` and `render:video` do it automatically. Turn off with `theme.captions.enabled`.
+- **Music:** `public/music/chill-lofi.ogg` (CC0, credits in `public/music/CREDITS.md`) loops under every video, quieter while the narrator speaks. Per video: `"music"`, `"musicVolume"`, or `"music": "none"`.
+- **Fonts:** Montserrat (headings, captions) and Poppins (body) from Google Fonts, set in `src/fonts.ts`.
+- **Animated emoji:** emoji in headlines and big text play as Google's animated Noto emoji (CC BY 4.0, credit added to the upload text automatically). Downloaded on `npm run video:sync` into `public/lottie/` (not committed).
+
 ## Sound effects
 45 free CC0 sounds are bundled in `public/sfx/` (list in `src/sfx.ts`, sources in `public/sfx/CREDITS.md`).
 Put them in a scene with `"sfx": [{ "name": "coin", "at": 0.5, "volume": 0.4 }]` (`at` = seconds into the scene).
@@ -32,8 +38,9 @@ Effects cost nothing to change, the narration audio is untouched.
 |---|---|
 | `npm run dev` | Studio at http://localhost:3000 (lists every `videos/*.json`) |
 | `npm run check:voice -- videos/x.json` | Checks narration text for a natural AI voice (free) |
-| `npm run voice -- videos/x.json` | Generates narration (Sarvam, speaker `ashutosh`), sets scene lengths from the audio. Cached per scene |
+| `npm run voice -- videos/x.json` | Generates narration (Sarvam Bulbul v4 Flash, speaker `ashutosh_hi_conversational`, ₹1 per 1,000 characters; `--model=bulbul:v3` for the old voice), sets scene lengths from the audio. Cached per scene |
 | `npm run render:video -- x` | Renders `out/x.mp4`, the thumbnail `out/x-thumbnail.png` and the upload text `out/x-upload.txt` (title, description, tags, hashtags, pinned comment) |
+| `npm run captions -- videos/x.json` | Refreshes caption word timings + music ducking (free) |
 | `npm run upload-info -- x` | Rewrites only `out/x-upload.txt` (instant, no render) |
 | `npm run reset` | Deletes `videos/*`, `public/media/*`, `out/*` |
 
@@ -55,5 +62,5 @@ Devanagari only, English words spelled in Devanagari, numbers/symbols as words, 
 
 ## Scene fields (`src/types.ts`)
 Per video: a `youtube` block (title, description, bullets, hashtags, tags, pinnedComment, category), a `thumbnail` block (`tag`, `emoji`, `highlight`, `title`, optional `image`) and `sfx` per scene (names in `src/sfx.ts`).
-Scene fields: `seconds`, `headline`, `sub`, `bigText`, `bigTextAnim` (`count|slam|pop|type`), `emphasis` (`flash|shake`), `note` (small print), `media` (`image`/`video`, `mode: background|card|sticker`), `voice`, plus generated `audio` and `voiceKey`.
+Scene fields: `seconds`, `headline`, `sub`, `bigText`, `visual` (`flow|meter|stamps|balloon|bars|list` explainer diagrams), `caption`, `bigTextAnim` (`count|slam|pop|type`), `emphasis` (`flash|shake`), `note` (small print), `media` (`image`/`video`, `mode: background|card|sticker`), `voice`, plus generated `audio` and `voiceKey`.
 Top-level `music` and `musicVolume` are optional.

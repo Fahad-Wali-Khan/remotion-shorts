@@ -13,6 +13,8 @@ import {
   useVideoConfig,
 } from "remotion";
 import { sfx, sfxMaxSeconds, type SfxName } from "../sfx";
+import { EmojiText } from "./Emoji";
+import { VisualView } from "./Visuals";
 import { theme } from "../theme";
 import type { Media, SceneConfig } from "../types";
 
@@ -84,7 +86,7 @@ const Headline: React.FC<{ text: string }> = ({ text }) => {
                 transform: `translateY(${(1 - p) * 50}px) scale(${0.6 + 0.4 * p})`,
               }}
             >
-              {w}
+              <EmojiText text={w} />
             </span>
           );
         })}
@@ -152,7 +154,7 @@ const BigText: React.FC<{ text: string; anim: NonNullable<SceneConfig["bigTextAn
         textShadow: `0 0 ${glow}px ${colors.accent2}88, 0 8px 0 rgba(0,0,0,0.35)`,
       }}
     >
-      {shown}
+      <EmojiText text={shown} />
       {anim === "type" && shown.length < text.length ? <span style={{ opacity: 0.6 }}>|</span> : null}
     </div>
   );
@@ -179,22 +181,87 @@ const Sticker: React.FC<{ media: Media }> = ({ media }) => {
   );
 };
 
+/** Word-by-word captions: a few words at a time, the spoken word highlighted. */
+const Captions: React.FC<{ words: NonNullable<SceneConfig["captions"]> }> = ({ words }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const { captions, fonts } = theme;
+  const t = frame / fps;
+
+  // group into chunks of up to maxWords, breaking after punctuation
+  const chunks: (typeof words)[] = [];
+  let cur: typeof words = [];
+  for (const w of words) {
+    cur.push(w);
+    if (cur.length >= captions.maxWords || /[,.!?।;:]$/.test(w.text)) {
+      chunks.push(cur);
+      cur = [];
+    }
+  }
+  if (cur.length) chunks.push(cur);
+
+  const idx = chunks.findIndex((c, i) => t >= c[0].start && t < (chunks[i + 1]?.[0].start ?? c[c.length - 1].end + 0.6));
+  if (idx < 0) return null;
+  const chunk = chunks[idx];
+  const pop = spring({ frame: frame - Math.round(chunk[0].start * fps), fps, config: { damping: 12, stiffness: 200 } });
+
+  return (
+    <div
+      style={{
+        fontFamily: fonts.heading,
+        fontSize: captions.fontSize,
+        fontWeight: 900,
+        lineHeight: 1.15,
+        textTransform: "uppercase",
+        transform: `scale(${0.8 + 0.2 * pop})`,
+        opacity: pop,
+        display: "flex",
+        flexWrap: "wrap",
+        justifyContent: "center",
+        columnGap: "0.5em",
+      }}
+    >
+      {chunk.map((w, i) => {
+        const active = t >= w.start && t < (chunk[i + 1]?.start ?? w.end + 0.6);
+        return (
+          <span
+            key={i}
+            style={{
+              display: "inline-block",
+              color: active ? captions.highlight : captions.color,
+              transform: `scale(${active ? 1.08 : 1})`,
+              WebkitTextStroke: "8px #000",
+              paintOrder: "stroke fill",
+              textShadow: "0 6px 0 rgba(0,0,0,0.45)",
+            }}
+          >
+            {w.text.replace(/[,.।;:]$/, "")}
+          </span>
+        );
+      })}
+    </div>
+  );
+};
+
 export const Scene: React.FC<{ scene: SceneConfig; index?: number }> = ({ scene, index = 0 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
   const { colors, fonts, sizes, safeArea, motion } = theme;
 
   // scene enters from alternating sides, slowly pushes in, then fades/zooms out
-  const enter = spring({ frame, fps, config: { damping: 16, stiffness: 120 } });
+  // The first scene must look complete on frame 0 (it is what people see before deciding to swipe):
+  // no slide-in, no flash, and its animations get a head start. Audio and captions are not shifted.
+  const intro = index === 0 ? 40 : 0; // 40 frames: count-ups and pops have finished
+  const enter = index === 0 ? 1 : spring({ frame, fps, config: { damping: 16, stiffness: 120 } });
   const side = index % 2 === 0 ? 1 : -1;
   const exit = interpolate(frame, [durationInFrames - motion.fadeFrames, durationInFrames], [0, 1], clamp);
   const push = interpolate(frame, [0, durationInFrames], [1, 1.05]);
   const shaking = scene.emphasis === "shake" || (scene.bigTextAnim === "slam" && frame > 10);
   const shake = shaking ? Math.sin(frame * 2.3) * interpolate(frame, [0, 24], [26, 0], clamp) : 0;
-  const flash = scene.emphasis === "flash" ? interpolate(frame, [0, 10], [0.85, 0], clamp) : 0;
+  const flash = scene.emphasis === "flash" && index > 0 ? interpolate(frame, [0, 10], [0.85, 0], clamp) : 0;
 
-  const subIn = spring({ frame: frame - 12, fps, config: { damping: 14 } });
-  const mediaPop = spring({ frame: frame - 4, fps, config: { damping: 12 } });
+  const subIn = spring({ frame: frame - 12 + intro, fps, config: { damping: 14 } });
+  const mediaPop = spring({ frame: frame - 4 + intro, fps, config: { damping: 12 } });
 
   const media = scene.media;
   const mode = media?.mode ?? "card";
@@ -242,7 +309,9 @@ export const Scene: React.FC<{ scene: SceneConfig; index?: number }> = ({ scene,
           transform: `translateX(${(1 - enter) * 140 * side + shake}px) translateY(${shake * 0.4}px) scale(${push * (1 + exit * 0.08)})`,
         }}
       >
-        {scene.headline ? <Headline text={scene.headline} /> : null}
+        <Sequence from={-intro} layout="none">
+          {scene.headline ? <Headline text={scene.headline} /> : null}
+        </Sequence>
 
         <div
           style={{
@@ -269,12 +338,22 @@ export const Scene: React.FC<{ scene: SceneConfig; index?: number }> = ({ scene,
               <MediaLayer media={media} />
             </div>
           ) : (
-            <>
+            <Sequence from={-intro} layout="none">
               {media && mode === "sticker" ? <Sticker media={media} /> : null}
-              {scene.bigText ? <BigText text={scene.bigText} anim={anim} /> : null}
-            </>
+              {scene.visual ? (
+                <VisualView visual={scene.visual} />
+              ) : scene.bigText ? (
+                <BigText text={scene.bigText} anim={anim} />
+              ) : null}
+            </Sequence>
           )}
         </div>
+
+        {theme.captions.enabled && scene.captions?.length ? (
+          <div style={{ height: 230, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Captions words={scene.captions} />
+          </div>
+        ) : null}
 
         {scene.sub ? (
           <div

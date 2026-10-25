@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { buildUploadInfo } from "./upload-info.mjs";
+import { alignScript } from "./align.mjs";
 
 const slug = process.argv[2]?.replace(/\.json$/, "").replace(/^videos[\\/]/, "");
 const available = existsSync("videos") ? readdirSync("videos").filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, "")) : [];
@@ -19,6 +20,9 @@ if (missing.length) {
   process.exit(1);
 }
 
+// refresh caption timings (picks up any edited caption text), free and offline
+alignScript(script);
+writeFileSync(`videos/${slug}.json`, JSON.stringify({ script }, null, 2) + "\n");
 execFileSync("node", ["scripts/sync-videos.mjs"], { stdio: "inherit" });
 const port = 3100 + Math.floor(Math.random() * 800); // keeps clear of a running Studio on :3000
 execFileSync("npx", ["remotion", "render", slug.replace(/[^a-zA-Z0-9-]/g, "-"), `out/${slug}.mp4`, `--port=${port}`], {

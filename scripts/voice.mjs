@@ -1,4 +1,4 @@
-// Usage: npm run voice -- videos/my-video.json [--speaker=ashutosh] [--pace=1.1] [--pad=0.3] [--force] [--engine=sarvam|edge]
+// Usage: npm run voice -- videos/my-video.json [--model=bulbul:v4-flash] [--speaker=ashutosh_hi_conversational] [--pace=1.1] [--pad=0.3] [--force] [--engine=sarvam|edge]
 //
 // Generates narration FIRST, so the visuals can follow the audio:
 //  - runs the voice check (scripts/check-voice.mjs) and stops on errors, so you never pay for a bad take
@@ -15,6 +15,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { checkScript } from "./check-voice.mjs";
+import { alignScript } from "./align.mjs";
 
 const args = process.argv.slice(2);
 const file = args.find((a) => !a.startsWith("--"));
@@ -34,7 +35,9 @@ if (engine === "sarvam" && !sarvamKey) {
   console.error("SARVAM_API_KEY missing. Put it in .env (git-ignored) or use --engine=edge.");
   process.exit(1);
 }
-const speaker = opt("speaker", "ashutosh"); // Sarvam voice, default chosen after comparing voices
+// Bulbul v4 Flash: ₹1 per 1,000 characters (v3 was ₹3). v4 uses persona voice IDs, v3 uses plain names ("ashutosh").
+const model = opt("model", "bulbul:v4-flash");
+const speaker = opt("speaker", model === "bulbul:v3" ? "ashutosh" : "ashutosh_hi_conversational");
 const pace = Number(opt("pace", "1.1")); // Sarvam speed, 1.0 = normal
 const edgeVoice = opt("voice", "hi-IN-MadhurNeural");
 const rate = opt("rate", "+25%");
@@ -72,7 +75,7 @@ async function synth(text, base, i) {
     const res = await fetch("https://api.sarvam.ai/text-to-speech", {
       method: "POST",
       headers: { "api-subscription-key": sarvamKey, "Content-Type": "application/json" },
-      body: JSON.stringify({ text, target_language_code: "hi-IN", model: "bulbul:v3", speaker, pace }),
+      body: JSON.stringify({ text, target_language_code: "hi-IN", model, speaker, pace }),
     });
     const json = await res.json();
     if (!res.ok || !json.audios?.[0]) {
@@ -117,5 +120,7 @@ for (const [i, scene] of script.scenes.entries()) {
   writeFileSync(file, JSON.stringify(data, null, 2) + "\n"); // save progress after every paid call
 }
 
+alignScript(script); // free: word timings for captions + speech timing for music ducking
+writeFileSync(file, JSON.stringify(data, null, 2) + "\n");
 const total = script.scenes.reduce((s, x) => s + x.seconds, 0);
-console.log(`Done (${engine}/${engine === "sarvam" ? speaker : edgeVoice}). Billed ${billed} characters, ${cached} scene(s) reused from cache. Video length: ${total.toFixed(1)}s`);
+console.log(`Done (${engine === "sarvam" ? `${model}/${speaker}` : `edge/${edgeVoice}`}). Billed ${billed} characters, ${cached} scene(s) reused from cache. Video length: ${total.toFixed(1)}s`);

@@ -18,12 +18,16 @@ asks for changes, and finally asks you to render.
    - Short sentences, max about 20 words, each ending with `।` `?` or `!`. Commas where a speaker would breathe.
    - No `...`. One to three sentences per scene. Keep the user's meaning and tone.
    On-screen text (`headline`, `sub`, `bigText`) stays short and can be Roman Hinglish with digits and ₹.
+   Also write each scene's **`caption`**: the same sentence as `voice` in Roman Hinglish (digits and ₹ allowed), with the
+   SAME punctuation, so caption phrases line up with the narration pauses. It is shown word by word, karaoke style.
 3. **Check, then generate audio ONCE:**
    ```
    npm run check:voice -- videos/<slug>.json    # fix every ERROR first
-   npm run voice -- videos/<slug>.json          # default voice: Sarvam "ashutosh" (needs SARVAM_API_KEY in .env)
+   npm run voice -- videos/<slug>.json          # default: Sarvam Bulbul v4 Flash, "ashutosh_hi_conversational" (₹1/1K chars; needs SARVAM_API_KEY in .env). Old v3 voice: --model=bulbul:v3
    ```
-   `voice` re-runs the check itself and sets each scene's `seconds` from the audio length.
+   `voice` re-runs the check itself, sets each scene's `seconds` from the audio length, and then (free, offline) works out
+   word timings for the captions and when the narrator speaks (used to duck the background music). After editing
+   `caption` text later, `npm run captions -- videos/<slug>.json` refreshes timings (render does it automatically too).
    It is cached: unchanged `voice` text is never billed again. Never edit a scene's `voice` after this
    unless the user asks for different narration (that re-bills only that scene). Add `--force` only if the user insists on skipping the check.
 4. **Show it:** make sure Studio is running (`npm run dev`, port 3000; do not start a second one), run
@@ -43,8 +47,16 @@ asks for changes, and finally asks you to render.
    (`media: { type: "image"|"video", src, mode: "background"|"card"|"sticker" }`; `sticker` = a logo that spins in above bigText).
    A logo can also replace the thumbnail emoji: `"thumbnail": { "logo": "media/x.png" }`. If a logo has white corners, make them transparent first.
    **Animation (use it, the user wants lively videos):** every scene already slides in, headlines pop word by word and numbers in
-   `bigText` count up. Per scene add punch where it fits: `"emphasis": "flash"` on the hook, `"shake"` on twists/shocks,
+   `bigText` count up. Per scene add punch where it fits: `"emphasis": "flash"` on a mid-video reveal (never scene 1: the first scene always starts fully visible on frame 0), `"shake"` on twists/shocks,
    `"bigTextAnim": "slam"` for dates or verdicts (no count-up), `"type"` for names/short phrases. `note` = small print (disclaimers).
+   **Explainer visuals** (`"visual"` instead of `bigText`, src/components/Visuals.tsx) for concepts:
+   `flow` (A → B with money flying, e.g. RBI → Bank), `meter` (gauge from→to, `tone` danger/growth, label illustrative numbers with `note`),
+   `stamps` (rows like loans getting a "MEHENGA"/"APPROVED" stamp), `balloon` (inflation balloon deflating, optional end stamp),
+   `bars` (growth bars + arrow, no numbers), `list` (lines sliding in; use it for the SEBI disclaimer scene).
+   Emoji in `headline`/`bigText`/`visual` play as animated Noto emoji automatically when Google has one (the upload text then adds the
+   required CC BY credit). Background music (`theme.music`, CC0 lofi) plays under every video and ducks under the voice;
+   a script can set `"music": "media/x.mp3"`, `"musicVolume"`, or `"music": "none"`.
+   `PIXABAY_API_KEY` is in `.env` for fetching free stock photos/videos (B-roll) when a video needs them; never print it.
 6. **Render only when the user says to:** `npm run render:video -- <slug>` -> `out/<slug>.mp4` `out/<slug>-thumbnail.png` (1080x1920) and `out/<slug>-upload.txt`.
 7. **Cleanup only when the user says to:** `npm run reset` (wipes `videos/`, `public/media/`, `out/`).
 

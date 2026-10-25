@@ -26,6 +26,18 @@ export type SceneSfx = {
   volume?: number;
 };
 
+type Tone = "danger" | "growth" | "gold";
+
+/** Animated explainer diagram shown in the middle of a scene instead of bigText (src/components/Visuals.tsx). */
+export type Visual =
+  | { type: "flow"; from: string; fromLabel?: string; to: string; toLabel?: string; item?: string; tag?: string }
+  | { type: "meter"; from: number; to: number; min?: number; max?: number; suffix?: string; label?: string; note?: string; tone?: Tone }
+  | { type: "stamps"; items: string[]; stamp: string; tone?: Tone }
+  | { type: "balloon"; emoji?: string; label?: string; mode?: "deflate" | "inflate"; stamp?: string }
+  | { type: "bars"; label?: string; tone?: Tone }
+  | { type: "list"; items: string[]; fontSize?: number }
+  | { type: "cta"; buttons?: { emoji: string; label: string }[]; done?: string };
+
 export type SceneConfig = {
   /** How long this scene lasts. Total video length = sum of all scenes. */
   seconds: number;
@@ -40,11 +52,19 @@ export type SceneConfig = {
   bigTextAnim?: "count" | "slam" | "pop" | "type";
   /** Extra punch when the scene starts: "shake" = screen shake, "flash" = white flash. */
   emphasis?: "shake" | "flash";
+  /** Animated diagram in the middle of the scene (replaces bigText). */
+  visual?: Visual;
   /** Small print at the bottom of the scene, e.g. a disclaimer. */
   note?: string;
   media?: Media;
   /** Narration text for this scene (use Devanagari for Hindi). `npm run voice` turns it into audio and sets `seconds`. */
   voice?: string;
+  /** Caption text shown word by word (Roman Hinglish, same punctuation as `voice`). Defaults to `voice`. */
+  caption?: string;
+  /** Word timings, filled in by `npm run captions` (seconds from scene start). */
+  captions?: { text: string; start: number; end: number }[];
+  /** When the narrator is speaking, filled in by `npm run captions`. Used to duck the music. */
+  speech?: [number, number][];
   /** Narration clip in /public — filled in by `npm run voice`. */
   audio?: string;
   /** Fingerprint of the narration that produced `audio` (voice text + speaker + pace). Lets `npm run voice` skip unchanged scenes. */
@@ -89,6 +109,7 @@ export type ShortScript = {
   thumbnail?: ThumbnailConfig;
   /** Optional narration/music in /public, e.g. "media/voiceover.mp3" */
   voiceover?: string;
+  /** Background music in /public. Default: theme.music.src. "none" = no music. */
   music?: string;
   musicVolume?: number;
   scenes: SceneConfig[];

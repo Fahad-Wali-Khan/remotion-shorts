@@ -4,6 +4,20 @@
 //   { "title", "description", "bullets": [], "hashtags": [], "tags": [], "pinnedComment", "category" }
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
+// Animated Noto emoji are CC BY 4.0, so videos that use them need a credit line.
+const usesAnimatedEmoji = (script) => {
+  const seg = new Intl.Segmenter("en", { granularity: "grapheme" });
+  return script.scenes.some((s) =>
+    [s.headline, s.bigText, JSON.stringify(s.visual ?? "")].some((t) =>
+      [...seg.segment(t ?? "")].some(({ segment }) => {
+        if (!/\p{Extended_Pictographic}/u.test(segment)) return false;
+        const code = [...segment].map((c) => c.codePointAt(0).toString(16)).filter((c) => c !== "fe0f").join("_");
+        return existsSync(`public/lottie/${code}.json`);
+      }),
+    ),
+  );
+};
+
 // Channel-wide text. The handle is read from src/theme.ts.
 const handle = readFileSync("src/theme.ts", "utf8").match(/handle:\s*"([^"]*)"/)?.[1] ?? "";
 const CTA = `Roz aise hi paise ki baat ke liye ${handle} ko follow karein 🔔`;
@@ -31,6 +45,7 @@ export function buildUploadInfo(slug, script) {
     y.bullets?.length ? "\n" + y.bullets.map((b) => `• ${b}`).join("\n") : "",
     "\n" + CTA,
     "\n" + DISCLAIMER,
+    usesAnimatedEmoji(script) ? "\nAnimated emoji: Google Noto Emoji (CC BY 4.0)" : "",
     "\n" + hashtags.join(" "),
   ]
     .join("\n")

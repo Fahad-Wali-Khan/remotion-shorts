@@ -16,3 +16,7 @@ public/media/*
 
 # Generated list of videos for Studio
 src/videos.generated.ts
+
+# Animated emoji cache (re-downloaded automatically)
+public/lottie/
+src/emoji.generated.ts

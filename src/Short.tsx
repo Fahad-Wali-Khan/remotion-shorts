@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   AbsoluteFill,
   Audio,
@@ -25,6 +25,42 @@ export const Short: React.FC<{ script: ShortScript }> = ({ script }) => {
     cursor += length;
     return { scene, from, length };
   });
+
+  // Music ducking: full volume in pauses, quiet while the narrator speaks (speech timings from `npm run captions`).
+  const musicSrc = script.music === "none" ? null : (script.music ?? theme.music.src);
+  const base = script.musicVolume ?? theme.music.volume;
+  const distanceToSpeech = useMemo(() => {
+    const speaking = new Array<boolean>(durationInFrames).fill(false);
+    for (const { scene, from } of timeline) {
+      for (const [s, e] of scene.speech ?? []) {
+        for (let f = from + Math.floor(s * fps); f < Math.min(durationInFrames, from + Math.ceil(e * fps)); f++) speaking[f] = true;
+      }
+    }
+    const dist = new Array<number>(durationInFrames).fill(1e9);
+    let last = -1e9;
+    for (let f = 0; f < durationInFrames; f++) {
+      if (speaking[f]) last = f;
+      dist[f] = f - last;
+    }
+    last = 1e9;
+    for (let f = durationInFrames - 1; f >= 0; f--) {
+      if (speaking[f]) last = f;
+      dist[f] = Math.min(dist[f], last - f);
+    }
+    return dist;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [script, durationInFrames, fps]);
+  const musicVolume = (f: number) => {
+    const duck = interpolate(distanceToSpeech[f] ?? 1e9, [0, 8], [theme.music.duckTo, base], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
+    const fade = interpolate(f, [0, 15, durationInFrames - 45, durationInFrames], [0, 1, 1, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
+    return duck * fade;
+  };
 
   const progress = interpolate(
     frame,
@@ -86,9 +122,7 @@ export const Short: React.FC<{ script: ShortScript }> = ({ script }) => {
       ))}
 
       {script.voiceover ? <Audio src={staticFile(script.voiceover)} /> : null}
-      {script.music ? (
-        <Audio src={staticFile(script.music)} volume={script.musicVolume ?? 0.15} loop />
-      ) : null}
+      {musicSrc ? <Audio src={staticFile(musicSrc)} volume={musicVolume} loop /> : null}
 
       {brand.logo ? (
         <Img

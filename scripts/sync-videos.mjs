@@ -1,6 +1,7 @@
 // Registers every videos/*.json as a Studio composition (the sidebar at http://localhost:3000).
 // Writes src/videos.generated.ts (git-ignored). Runs automatically before dev/render/lint/install.
 import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { fetchEmoji } from "./fetch-emoji.mjs";
 
 mkdirSync("videos", { recursive: true });
 const files = readdirSync("videos").filter((f) => f.endsWith(".json")).sort();
@@ -18,3 +19,5 @@ const lines = [
 ];
 writeFileSync("src/videos.generated.ts", lines.join("\n"));
 console.log(`Studio list updated: ${ids.length ? ids.join(", ") : "(no videos yet)"}`);
+const emoji = await fetchEmoji();
+console.log(`Animated emoji ready: ${Object.keys(emoji).join(" ") || "(none)"}`);
