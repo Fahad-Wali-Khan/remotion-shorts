@@ -6,6 +6,8 @@ asks for changes, and finally asks you to render.
 
 ## When the user pastes a script
 
+**Stock market / trading content:** follow `SEBI_COMPLIANCE.md` (no buy/sell calls or targets, historical data only with date range, mandatory spoken + on-screen disclaimer as the last scene). Flag any borderline line in the user's script and suggest a safer version before generating audio.
+
 1. **Pick a slug** (`gold-rush`, `rbi-emi`). Create `videos/<slug>.json`:
    `{ "script": { "scenes": [ { "seconds": 5, "headline": "...", "sub": "...", "bigText": "...", "voice": "..." } ] } }`
    Split the script into scenes of one idea each (about 3 to 12 seconds of speech). `seconds` is a
@@ -38,7 +40,11 @@ asks for changes, and finally asks you to render.
    `tags` (12 to 15 search phrases incl. the channel name, under 500 chars), `pinnedComment` (an engagement question), `category`.
    The generator adds the follow CTA and a financial-advice disclaimer itself. Use only facts from the user's script.
    Images/videos the user provides go in `public/media/` and are referenced as `media/<file>`
-   (`media: { type: "image"|"video", src, mode: "background"|"card" }`).
+   (`media: { type: "image"|"video", src, mode: "background"|"card"|"sticker" }`; `sticker` = a logo that spins in above bigText).
+   A logo can also replace the thumbnail emoji: `"thumbnail": { "logo": "media/x.png" }`. If a logo has white corners, make them transparent first.
+   **Animation (use it, the user wants lively videos):** every scene already slides in, headlines pop word by word and numbers in
+   `bigText` count up. Per scene add punch where it fits: `"emphasis": "flash"` on the hook, `"shake"` on twists/shocks,
+   `"bigTextAnim": "slam"` for dates or verdicts (no count-up), `"type"` for names/short phrases. `note` = small print (disclaimers).
 6. **Render only when the user says to:** `npm run render:video -- <slug>` -> `out/<slug>.mp4` `out/<slug>-thumbnail.png` (1080x1920) and `out/<slug>-upload.txt`.
 7. **Cleanup only when the user says to:** `npm run reset` (wipes `videos/`, `public/media/`, `out/`).
 

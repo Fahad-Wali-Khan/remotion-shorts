@@ -5,8 +5,9 @@ export type Media = {
   /**
    * "background": fills the whole screen behind the text (dimmed by theme overlay)
    * "card": shown as a rounded picture/clip in the middle of the scene
+   * "sticker": a logo/small picture that spins in above the bigText (e.g. a company logo)
    */
-  mode?: "background" | "card";
+  mode?: "background" | "card" | "sticker";
   /** cover = fill & crop, contain = show whole thing. Default: cover */
   fit?: "cover" | "contain";
   /** Videos only: start playing from this many seconds into the file. */
@@ -32,6 +33,15 @@ export type SceneConfig = {
   sub?: string;
   /** Large highlighted text/number in the middle (e.g. "₹1.7 Cr"). */
   bigText?: string;
+  /**
+   * How bigText appears. Default: "count" if it contains a number (numbers count up from 0), else "pop".
+   * "slam" = drops in hard with a shake, "type" = typewriter, "pop" = bouncy zoom.
+   */
+  bigTextAnim?: "count" | "slam" | "pop" | "type";
+  /** Extra punch when the scene starts: "shake" = screen shake, "flash" = white flash. */
+  emphasis?: "shake" | "flash";
+  /** Small print at the bottom of the scene, e.g. a disclaimer. */
+  note?: string;
   media?: Media;
   /** Narration text for this scene (use Devanagari for Hindi). `npm run voice` turns it into audio and sets `seconds`. */
   voice?: string;
@@ -48,6 +58,8 @@ export type ThumbnailConfig = {
   tag?: string;
   /** One big emoji above the text. */
   emoji?: string;
+  /** A logo from /public shown instead of the emoji, e.g. "media/jio-logo.png". */
+  logo?: string;
   /** The huge gold words (keep it to 1 to 3 short words, e.g. "₹1.48 LAKH"). */
   highlight: string;
   /** White line under it (6 words max works best). */

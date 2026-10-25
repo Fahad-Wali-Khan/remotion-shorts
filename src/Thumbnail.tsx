@@ -7,7 +7,7 @@ const W = 1080;
 
 export const Thumbnail: React.FC<{ thumbnail: ThumbnailConfig }> = ({ thumbnail }) => {
   const { colors, fonts, brand } = theme;
-  const { tag, emoji, highlight, title, image } = thumbnail;
+  const { tag, emoji, logo, highlight, title, image } = thumbnail;
 
   // Fit the highlight on one line using rough per-character widths (in em) for this bold font.
   const em = [...highlight.toUpperCase()].reduce((sum, ch) => {
@@ -63,7 +63,12 @@ export const Thumbnail: React.FC<{ thumbnail: ThumbnailConfig }> = ({ thumbnail 
         ) : null}
       </div>
 
-      {emoji ? (
+      {logo ? (
+        <Img
+          src={staticFile(logo)}
+          style={{ position: "absolute", top: 330, left: W / 2 - 210, width: 420, height: 420, objectFit: "contain", filter: "drop-shadow(0 25px 40px rgba(0,0,0,0.6))" }}
+        />
+      ) : emoji ? (
         <div style={{ position: "absolute", top: 330, width: "100%", textAlign: "center", fontSize: 420, lineHeight: 1, filter: "drop-shadow(0 25px 40px rgba(0,0,0,0.6))" }}>
           {emoji}
         </div>

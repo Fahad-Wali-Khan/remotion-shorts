@@ -55,5 +55,5 @@ Devanagari only, English words spelled in Devanagari, numbers/symbols as words, 
 
 ## Scene fields (`src/types.ts`)
 Per video: a `youtube` block (title, description, bullets, hashtags, tags, pinnedComment, category), a `thumbnail` block (`tag`, `emoji`, `highlight`, `title`, optional `image`) and `sfx` per scene (names in `src/sfx.ts`).
-Scene fields: `seconds`, `headline`, `sub`, `bigText`, `media` (`image`/`video`, `mode: background|card`), `voice`, plus generated `audio` and `voiceKey`.
+Scene fields: `seconds`, `headline`, `sub`, `bigText`, `bigTextAnim` (`count|slam|pop|type`), `emphasis` (`flash|shake`), `note` (small print), `media` (`image`/`video`, `mode: background|card|sticker`), `voice`, plus generated `audio` and `voiceKey`.
 Top-level `music` and `musicVolume` are optional.

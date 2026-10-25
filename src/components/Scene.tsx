@@ -2,6 +2,7 @@ import React from "react";
 import {
   AbsoluteFill,
   Audio,
+  Easing,
   Img,
   OffthreadVideo,
   Sequence,
@@ -14,6 +15,8 @@ import {
 import { sfx, sfxMaxSeconds, type SfxName } from "../sfx";
 import { theme } from "../theme";
 import type { Media, SceneConfig } from "../types";
+
+const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
 const MediaLayer: React.FC<{ media: Media; style?: React.CSSProperties }> = ({
   media,
@@ -39,28 +42,166 @@ const MediaLayer: React.FC<{ media: Media; style?: React.CSSProperties }> = ({
   );
 };
 
-export const Scene: React.FC<{ scene: SceneConfig }> = ({ scene }) => {
+/** Replaces every number in `text` with its value at `progress` (0..1), keeping decimals and Indian commas. */
+const countUp = (text: string, progress: number) =>
+  text.replace(/\d[\d,]*(\.\d+)?/g, (match) => {
+    const decimals = match.split(".")[1]?.length ?? 0;
+    const value = parseFloat(match.replace(/,/g, "")) * progress;
+    const formatted = value.toLocaleString("en-IN", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+    return match.includes(",") ? formatted : formatted.replace(/,/g, "");
+  });
+
+/** Headline that pops in word by word, with a growing underline. */
+const Headline: React.FC<{ text: string }> = ({ text }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const { colors, fonts, sizes } = theme;
+  const words = text.split(" ");
+  const underline = spring({ frame: frame - words.length * 2 - 4, fps, config: { damping: 15 } });
+  return (
+    <div>
+      <div
+        style={{
+          fontFamily: fonts.heading,
+          fontSize: sizes.headline,
+          fontWeight: 900,
+          color: colors.text,
+          lineHeight: 1.1,
+        }}
+      >
+        {words.map((w, i) => {
+          const p = spring({ frame: frame - i * 2, fps, config: { damping: 11, stiffness: 160 } });
+          return (
+            <span
+              key={i}
+              style={{
+                display: "inline-block",
+                marginRight: "0.25em",
+                opacity: Math.min(1, p * 1.5),
+                transform: `translateY(${(1 - p) * 50}px) scale(${0.6 + 0.4 * p})`,
+              }}
+            >
+              {w}
+            </span>
+          );
+        })}
+      </div>
+      <div
+        style={{
+          margin: "22px auto 0",
+          height: 10,
+          width: 180 * underline,
+          borderRadius: 5,
+          background: `linear-gradient(90deg, ${colors.accent}, ${colors.accent2})`,
+        }}
+      />
+    </div>
+  );
+};
+
+/** The big number / word in the middle: entrance animation, then a gentle pulse and glow. */
+const BigText: React.FC<{ text: string; anim: NonNullable<SceneConfig["bigTextAnim"]> }> = ({
+  text,
+  anim,
+}) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const { colors, fonts, sizes } = theme;
+  const start = 6; // let the headline land first
+
+  let shown = text;
+  let scale = 1;
+  let opacity = 1;
+  let rotate = 0;
+  if (anim === "count") {
+    const p = interpolate(frame, [start, start + 28], [0, 1], { ...clamp, easing: Easing.out(Easing.cubic) });
+    shown = countUp(text, p);
+    scale = 0.5 + 0.5 * spring({ frame: frame - start, fps, config: { damping: 10 } });
+    opacity = interpolate(frame, [start, start + 4], [0, 1], clamp);
+  } else if (anim === "slam") {
+    const p = spring({ frame: frame - start, fps, config: { damping: 14, stiffness: 300, mass: 0.6 } });
+    scale = 2.6 - 1.6 * p;
+    opacity = interpolate(frame, [start, start + 3], [0, 1], clamp);
+    rotate = (1 - p) * -8;
+  } else if (anim === "type") {
+    const chars = [...text];
+    const n = Math.floor(interpolate(frame, [start, start + chars.length * 1.5], [0, chars.length], clamp));
+    shown = chars.slice(0, n).join("");
+  } else {
+    scale = spring({ frame: frame - start, fps, config: { damping: 9, stiffness: 140 } });
+  }
+
+  // after the entrance: breathe + glow
+  const settled = frame - start - 25;
+  const breathe = settled > 0 ? 1 + 0.025 * Math.sin(settled / 9) : 1;
+  const glow = settled > 0 ? 18 + 14 * (0.5 + 0.5 * Math.sin(settled / 9)) : 18;
+
+  return (
+    <div
+      style={{
+        fontFamily: fonts.heading,
+        fontSize: sizes.bigText,
+        fontWeight: 900,
+        lineHeight: 1.15,
+        color: colors.accent2,
+        opacity,
+        transform: `scale(${scale * breathe}) rotate(${rotate}deg)`,
+        textShadow: `0 0 ${glow}px ${colors.accent2}88, 0 8px 0 rgba(0,0,0,0.35)`,
+      }}
+    >
+      {shown}
+      {anim === "type" && shown.length < text.length ? <span style={{ opacity: 0.6 }}>|</span> : null}
+    </div>
+  );
+};
+
+/** A logo / small picture that pops in with a spin and then floats gently. */
+const Sticker: React.FC<{ media: Media }> = ({ media }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const p = spring({ frame: frame - 2, fps, config: { damping: 10, stiffness: 120 } });
+  const float = Math.sin(frame / 14) * 10;
+  return (
+    <div
+      style={{
+        width: 300,
+        height: 300,
+        margin: "0 auto 30px",
+        transform: `translateY(${float}px) scale(${p}) rotate(${(1 - p) * -180}deg)`,
+        filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.5))",
+      }}
+    >
+      <MediaLayer media={{ ...media, fit: media.fit ?? "contain" }} />
+    </div>
+  );
+};
+
+export const Scene: React.FC<{ scene: SceneConfig; index?: number }> = ({ scene, index = 0 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
   const { colors, fonts, sizes, safeArea, motion } = theme;
 
-  const pop = spring({ frame, fps, config: { damping: 12 } });
-  const fadeOut = interpolate(
-    frame,
-    [durationInFrames - motion.fadeFrames, durationInFrames],
-    [1, 0],
-    { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
-  );
-  const subOpacity = interpolate(frame, [10, 22], [0, 1], {
-    extrapolateRight: "clamp",
-  });
+  // scene enters from alternating sides, slowly pushes in, then fades/zooms out
+  const enter = spring({ frame, fps, config: { damping: 16, stiffness: 120 } });
+  const side = index % 2 === 0 ? 1 : -1;
+  const exit = interpolate(frame, [durationInFrames - motion.fadeFrames, durationInFrames], [0, 1], clamp);
+  const push = interpolate(frame, [0, durationInFrames], [1, 1.05]);
+  const shaking = scene.emphasis === "shake" || (scene.bigTextAnim === "slam" && frame > 10);
+  const shake = shaking ? Math.sin(frame * 2.3) * interpolate(frame, [0, 24], [26, 0], clamp) : 0;
+  const flash = scene.emphasis === "flash" ? interpolate(frame, [0, 10], [0.85, 0], clamp) : 0;
+
+  const subIn = spring({ frame: frame - 12, fps, config: { damping: 14 } });
+  const mediaPop = spring({ frame: frame - 4, fps, config: { damping: 12 } });
 
   const media = scene.media;
-  const isBackground = media && (media.mode ?? "card") === "background";
-  const isCard = media && !isBackground;
+  const mode = media?.mode ?? "card";
+  const anim = scene.bigTextAnim ?? (scene.bigText && /\d/.test(scene.bigText) ? "count" : "pop");
 
   return (
-    <AbsoluteFill style={{ opacity: fadeOut }}>
+    <AbsoluteFill style={{ opacity: 1 - exit }}>
       {scene.audio ? <Audio src={staticFile(scene.audio)} /> : null}
       {(scene.sfx ?? []).map((fx, i) => {
         if (!(fx.name in sfx)) {
@@ -78,9 +219,9 @@ export const Scene: React.FC<{ scene: SceneConfig }> = ({ scene }) => {
           </Sequence>
         );
       })}
-      {media && isBackground ? (
+      {media && mode === "background" ? (
         <>
-          <AbsoluteFill>
+          <AbsoluteFill style={{ transform: `scale(${push * 1.05})` }}>
             <MediaLayer media={media} />
           </AbsoluteFill>
           <AbsoluteFill style={{ background: colors.overlay }} />
@@ -94,37 +235,27 @@ export const Scene: React.FC<{ scene: SceneConfig }> = ({ scene }) => {
           paddingLeft: safeArea.side,
           paddingRight: safeArea.side,
           paddingTop: safeArea.top,
-          paddingBottom: safeArea.bottom,
+          paddingBottom: safeArea.bottom + (scene.note ? 60 : 0), // room for the small print
           display: "flex",
           flexDirection: "column",
+          opacity: Math.min(1, enter * 1.4),
+          transform: `translateX(${(1 - enter) * 140 * side + shake}px) translateY(${shake * 0.4}px) scale(${push * (1 + exit * 0.08)})`,
         }}
       >
-        {scene.headline ? (
-          <div
-            style={{
-              fontFamily: fonts.heading,
-              fontSize: sizes.headline,
-              fontWeight: 900,
-              color: colors.text,
-              lineHeight: 1.1,
-              transform: `scale(${0.7 + 0.3 * pop})`,
-            }}
-          >
-            {scene.headline}
-          </div>
-        ) : null}
+        {scene.headline ? <Headline text={scene.headline} /> : null}
 
         <div
           style={{
             flex: 1,
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
             minHeight: 0,
             padding: "30px 0",
           }}
         >
-          {isCard && media ? (
+          {media && mode === "card" ? (
             <div
               style={{
                 width: "100%",
@@ -132,24 +263,17 @@ export const Scene: React.FC<{ scene: SceneConfig }> = ({ scene }) => {
                 borderRadius: 36,
                 overflow: "hidden",
                 boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
-                transform: `scale(${pop})`,
+                transform: `scale(${mediaPop}) rotate(${(1 - mediaPop) * 6 * side}deg)`,
               }}
             >
               <MediaLayer media={media} />
             </div>
-          ) : scene.bigText ? (
-            <div
-              style={{
-                fontFamily: fonts.heading,
-                fontSize: sizes.bigText,
-                fontWeight: 900,
-                color: colors.accent2,
-                transform: `scale(${pop})`,
-              }}
-            >
-              {scene.bigText}
-            </div>
-          ) : null}
+          ) : (
+            <>
+              {media && mode === "sticker" ? <Sticker media={media} /> : null}
+              {scene.bigText ? <BigText text={scene.bigText} anim={anim} /> : null}
+            </>
+          )}
         </div>
 
         {scene.sub ? (
@@ -157,7 +281,8 @@ export const Scene: React.FC<{ scene: SceneConfig }> = ({ scene }) => {
             style={{
               fontSize: sizes.sub,
               color: colors.accent,
-              opacity: subOpacity,
+              opacity: subIn,
+              transform: `translateY(${(1 - subIn) * 40}px)`,
               lineHeight: 1.3,
             }}
           >
@@ -165,6 +290,24 @@ export const Scene: React.FC<{ scene: SceneConfig }> = ({ scene }) => {
           </div>
         ) : null}
       </AbsoluteFill>
+      {scene.note ? (
+        <div
+          style={{
+            position: "absolute",
+            left: safeArea.side,
+            right: safeArea.side,
+            bottom: safeArea.bottom - 50,
+            textAlign: "center",
+            fontFamily: fonts.body,
+            fontSize: 28,
+            color: colors.text,
+            opacity: 0.75 * subIn,
+          }}
+        >
+          {scene.note}
+        </div>
+      ) : null}
+      {flash > 0 ? <AbsoluteFill style={{ background: "#fff", opacity: flash }} /> : null}
     </AbsoluteFill>
   );
 };

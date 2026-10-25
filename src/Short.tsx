@@ -38,9 +38,50 @@ export const Short: React.FC<{ script: ShortScript }> = ({ script }) => {
         background: `linear-gradient(160deg, ${colors.bgFrom}, ${colors.bgMid} 60%, ${colors.bgTo})`,
       }}
     >
+      {/* moving background: two drifting glows + floating rupee symbols */}
+      <div
+        style={{
+          position: "absolute",
+          width: 900,
+          height: 900,
+          borderRadius: "50%",
+          left: -300 + Math.sin(frame / 70) * 160,
+          top: 200 + Math.cos(frame / 90) * 200,
+          background: `radial-gradient(circle, ${colors.accent}22 0%, transparent 65%)`,
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          width: 1000,
+          height: 1000,
+          borderRadius: "50%",
+          right: -380 + Math.cos(frame / 80) * 180,
+          top: 900 + Math.sin(frame / 60) * 220,
+          background: `radial-gradient(circle, ${colors.accent2}1f 0%, transparent 65%)`,
+        }}
+      />
+      {Array.from({ length: 10 }).map((_, i) => (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            left: (i * 137 + 40) % 1040,
+            top: 1920 - ((frame * (1.5 + (i % 3) * 0.8) + i * 230) % 2150),
+            fontSize: 50 + (i % 3) * 30,
+            fontWeight: 900,
+            fontFamily: theme.fonts.heading,
+            color: "rgba(255,255,255,0.06)",
+            transform: `rotate(${Math.sin((frame + i * 40) / 30) * 20}deg)`,
+          }}
+        >
+          ₹
+        </div>
+      ))}
+
       {timeline.map(({ scene, from, length }, i) => (
         <Sequence key={i} from={from} durationInFrames={length}>
-          <Scene scene={scene} />
+          <Scene scene={scene} index={i} />
         </Sequence>
       ))}
 
